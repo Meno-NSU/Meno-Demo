@@ -119,7 +119,7 @@ MAX_NUMBER_OF_SEARCH_QUERIES: int = 4
 RANDOM_SEED: int = 42
 MAX_GPU_MEM_PART_FOR_LLM: float = 0.905
 MIN_GPU_MEM_PART_FOR_LLM: float = 0.5
-LEXICAL_DISTANCE_THRESHOLD: float = 0.05
+LEXICAL_DISTANCE_THRESHOLD: float = 0.01
 THINKING_END_TOKEN = '</think>'
 qa_logger = logging.getLogger(__name__)
 
