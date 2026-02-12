@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 import codecs
 import copy
 import csv
@@ -9,6 +8,7 @@ import os
 import random
 import signal
 import sys
+from argparse import ArgumentParser
 from typing import Dict, List, Optional, Tuple, Union
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
@@ -28,8 +28,7 @@ from transformers import AutoTokenizer, T5EncoderModel
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast, PreTrainedModel
 from transformers import GenerationConfig, AutoConfig
 from vllm import LLM, SamplingParams
-from vllm import EngineArgs, LLMEngine
-
+from vllm import LLMEngine
 
 QA_SYSTEM_PROMPT = ('Вы - эксперт в области науки, техники и юриспруденции. Вы безукоризненно вежливы, а ваши ответы '
                     'на сложные вопросы человека всегда логичны и точны. Вы способны разобраться даже в самой сложной '
@@ -92,17 +91,17 @@ EXAMPLES_OF_SEARCH_QUERIES = (
     {
         'question': 'Где живут и чем питаются пингвины?',
         'search_queries': (
-            'пингвины место обитания', # 0
-            'пингвины рацион питания', # 1
-            'где живут пингвины и чем питаются' # 2
+            'пингвины место обитания',  # 0
+            'пингвины рацион питания',  # 1
+            'где живут пингвины и чем питаются'  # 2
         )
     },
     {
         'question': 'Какой ГОСТ или СНиП регламентирует разработку УПБС по укрупненным статьям затрат?',
         'search_queries': (
-            'ГОСТ УПБС укрупненные статьи затрат', # 0
-            'СНиП разработка УПБС', # 1
-            'нормативные документы УПБС стоимостные статьи' # 2
+            'ГОСТ УПБС укрупненные статьи затрат',  # 0
+            'СНиП разработка УПБС',  # 1
+            'нормативные документы УПБС стоимостные статьи'  # 2
         )
     },
     {
@@ -110,26 +109,26 @@ EXAMPLES_OF_SEARCH_QUERIES = (
                     'Ростовского ПромстройНИИпроекта?',
         'search_queries': (
             'лабораторное закрепление просадочных лессовых грунтов методика Ростовского ПромстройНИИпроекта '
-            'схема прибора', # 0
-            'Ростовский ПромстройНИИпроекта лабораторный прибор для исследования просадочных грунтов', # 1
-            'методы и устройства для закрепления лессовых грунтов по методике Ростовского ПромстройНИИпроекта' # 2
+            'схема прибора',  # 0
+            'Ростовский ПромстройНИИпроекта лабораторный прибор для исследования просадочных грунтов',  # 1
+            'методы и устройства для закрепления лессовых грунтов по методике Ростовского ПромстройНИИпроекта'  # 2
         )
     },
     {
         'question': 'Как определяется «граница балансовой принадлежности» в документе МДС 41-3.2000?',
         'search_queries': (
-            'граница балансовой принадлежности МДС 41-3.2000', # 0
-            'определение границы балансовой принадлежности в МДС 41-3.2000', # 1
-            'МДС 41-3.2000 балансовая принадлежность' # 2
+            'граница балансовой принадлежности МДС 41-3.2000',  # 0
+            'определение границы балансовой принадлежности в МДС 41-3.2000',  # 1
+            'МДС 41-3.2000 балансовая принадлежность'  # 2
         )
     },
     {
         'question': 'Как учитывается полезное ископаемое, в отношении которого в налоговом периоде завершен комплекс '
                     'технологических операций?',
         'search_queries': (
-            'учет полезного ископаемого завершен комплекс технологических операций налоговый период порядок учета', # 0
-            'комплекс технологических операций завершен полезное ископаемое как учитывается НДПИ налоговый период', # 1
-            'учет добытого полезного ископаемого завершение технологических операций определение момента добычи' # 2
+            'учет полезного ископаемого завершен комплекс технологических операций налоговый период порядок учета',  # 0
+            'комплекс технологических операций завершен полезное ископаемое как учитывается НДПИ налоговый период',  # 1
+            'учет добытого полезного ископаемого завершение технологических операций определение момента добычи'  # 2
         )
     },
     {
@@ -225,7 +224,9 @@ def prepare_messages_for_answering(user_question: str, context: Dict[str, Dict[s
                                    doc_titles: Dict[str, str],
                                    llm_tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
                                    add_json: Optional[bool] = False,
-                                   shuffle_context: Optional[bool] = False) -> Union[str, Tuple[str, Dict[str, str]]]:
+                                   shuffle_context: Optional[bool] = False,
+                                   conversation_history: Optional[List[Dict[str, str]]] = None
+                                   ) -> Union[str, Tuple[str, Dict[str, str]]]:
     structured_context = []
     documents = sorted(list(context.keys()))
     if shuffle_context:
@@ -249,16 +250,11 @@ def prepare_messages_for_answering(user_question: str, context: Dict[str, Dict[s
         user_question=' '.join(user_question.strip().split()).strip(),
         jsonified_context=json.dumps(obj=structured_context, ensure_ascii=False, indent=4)
     )
-    messages = [
-        {
-            'role': 'system',
-            'content': system_prompt
-        },
-        {
-            'role': 'user',
-            'content': user_prompt
-        }
-    ]
+    messages = [{'role': 'system', 'content': system_prompt}]
+    if conversation_history:
+        messages.extend(conversation_history)
+
+    messages.append({'role': 'user', 'content': user_prompt})
     if THINKING_END_TOKEN in llm_tokenizer.vocab:
         text = llm_tokenizer.apply_chat_template(
             messages,
@@ -369,7 +365,7 @@ def prepare_bm25(chunks: List[str], stemmer: SnowballStemmer) -> BM25Okapi:
 
 
 def find_relevant_chunks_with_bm25_search(user_question: str, stemmer: SnowballStemmer, bm25_db: BM25Okapi,
-                                          num_chunks: int, top_k: Optional[int]=BM25_TOP_K) -> List[int]:
+                                          num_chunks: int, top_k: Optional[int] = BM25_TOP_K) -> List[int]:
     chunk_scores = bm25_db.get_scores(prepare_text_for_bm25(user_question, stemmer))
     if len(chunk_scores) != num_chunks:
         err_msg = f'The chunk scores list does not correspond to the chunks list! {len(chunk_scores)} != {num_chunks}'
@@ -422,7 +418,7 @@ def find_relevant_chunks_with_vector_search(user_question: str,
                                             sent_emb_tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
                                             sent_embedder: PreTrainedModel,
                                             vector_db: AnnoyIndex,
-                                            top_k: Optional[int]=VECTOR_TOP_K) -> List[int]:
+                                            top_k: Optional[int] = VECTOR_TOP_K) -> List[int]:
     question_vector = vectorize_question(user_question, sent_emb_tokenizer, sent_embedder)
     chunk_indices = vector_db.get_nns_by_vector(vector=question_vector, n=top_k, search_k=-1, include_distances=False)
     del question_vector
