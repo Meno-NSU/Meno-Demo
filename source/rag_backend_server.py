@@ -254,7 +254,7 @@ class RAGResources:
             qa_logger.warning("%s: %s", self.settings.reranker_dir, first_error)
             self.reranker = LLM(
                 model=str(self.settings.reranker_dir),
-                gpu_memory_utilization=0.985 - self.settings.gpu_mem_part,
+                gpu_memory_utilization=0.06,
                 max_model_len=round(1.8 * max_chunk_length_for_reranker),
                 # task="score",
             )
