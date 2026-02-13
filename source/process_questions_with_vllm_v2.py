@@ -228,7 +228,7 @@ def prepare_messages_for_answering(user_question: str, context: Dict[str, Dict[s
                                    llm_tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
                                    add_json: Optional[bool] = False,
                                    shuffle_context: Optional[bool] = False,
-                                   conversation_history: Optional[List[Dict[str, str]]] = None
+                                   # conversation_history: Optional[List[Dict[str, str]]] = None
                                    ) -> Union[str, Tuple[str, Dict[str, str]]]:
     structured_context = []
     documents = sorted(list(context.keys()))
@@ -254,8 +254,8 @@ def prepare_messages_for_answering(user_question: str, context: Dict[str, Dict[s
         jsonified_context=json.dumps(obj=structured_context, ensure_ascii=False, indent=4)
     )
     messages = [{'role': 'system', 'content': system_prompt}]
-    if conversation_history:
-        messages.extend(conversation_history)
+    # if conversation_history:
+    #     messages.extend(conversation_history)
 
     messages.append({'role': 'user', 'content': user_prompt})
     if THINKING_END_TOKEN in llm_tokenizer.vocab:
