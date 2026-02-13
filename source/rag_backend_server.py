@@ -75,7 +75,7 @@ class BackendSettings:
     inference_workers: int = 1
     request_timeout_sec: int = 180
     history_for_retrieval: int = 3
-    max_history_messages: int = 24
+    max_history_messages: int = 1
     history_ttl_sec: int = 43200
     gc_interval_sec: int = 300
     disable_aggregation: bool = False
