@@ -1051,19 +1051,19 @@ def parse_args() -> argparse.Namespace:
         "--history-for-retrieval",
         dest="history_for_retrieval",
         type=int,
-        default=int(os.getenv("HISTORY_FOR_RETRIEVAL", "3")),
+        default=int(os.getenv("HISTORY_FOR_RETRIEVAL", "0")),
     )
     parser.add_argument(
         "--max-history-messages",
         dest="max_history_messages",
         type=int,
-        default=int(os.getenv("MAX_HISTORY_MESSAGES", "24")),
+        default=int(os.getenv("MAX_HISTORY_MESSAGES", "0")),
     )
     parser.add_argument(
         "--history-ttl",
         dest="history_ttl_sec",
         type=int,
-        default=int(os.getenv("HISTORY_TTL_SEC", "43200")),
+        default=int(os.getenv("HISTORY_TTL_SEC", "0")),
     )
     parser.add_argument(
         "--gc-interval",
